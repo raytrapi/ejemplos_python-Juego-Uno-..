@@ -99,12 +99,14 @@ def escogerCarta(jugador, cartaEnMesa, baraja):
    while repetir:
       mostrarMano(jugador, True, cartaEnMesa)
       print("\r\nCarta en la mesa: ", pintarCarta(monton[-1]))
-      idCartaEscogida=input("Que carta quieres tirar (R para robar "+str(len(baraja))+"):").capitalize()
+      idCartaEscogida=input("Que carta quieres tirar (R para robar, G Grabar, "+str(len(baraja))+"):").capitalize()
       if idCartaEscogida=="R":
          if len(baraja)>0:
             baraja=robar(jugador,1,baraja)
          else:
             print("NO HAY CARTAS PARA ROBAR")
+      elif idCartaEscogida=="G":
+         return -2,baraja
       elif idCartaEscogida.isnumeric() and int(idCartaEscogida)>0 and int(idCartaEscogida)<=len(jugador["mano"]):
          cartaEscogida=jugador["mano"][int(idCartaEscogida)-1]
          if cumpleLasReglas(cartaEscogida,cartaEnMesa):
@@ -168,6 +170,18 @@ def jugarCarta(jugador, cartaEnMesa, baraja):
    jugador["mano"]=jugador["mano"][0:int(idCartaSeleccionada)]+jugador["mano"][int(idCartaSeleccionada)+1:]
    return cartaEscogida,baraja
 
+def grabarPartida(jugadores,baraja,monton,idJugador):
+   f = open("partida.txt", "a")
+   f.write("JUGADORES\n")
+   f.write(str(jugadores))
+   f.write("\nBARAJA\n")
+   f.write(str(baraja))
+   f.write("\nmonton\n")
+   f.write(str(monton))
+   f.write("\njugador actual\n")
+   f.write(str(idJugador))
+   f.close()
+
 colores=["NEGRO", "AZUL", "VERDE", "ROJA", "AMARILLA"]
 baraja=[] #La baraja de cartas sin cojer
 monton=[] #El montón en la mesa
@@ -222,15 +236,18 @@ while continuar:
       print(bcolors.BOLD+ "\tTira "+pintarCarta(cartaEscogida)+bcolors.ENDC)
    else:
       cartaEscogida,baraja=escogerCarta(jugador,monton[-1],baraja)
-   if cartaEscogida!=None:
-      cartaEscogida["robar"]+=monton[-1]["robar"]
-      monton.append(cartaEscogida)
-   if len(jugador["mano"])==0:
-      continuar=False
-      print (jugador["nombre"]+ "  GANA LA PARTIDA")
-   if monton[-1]["valor"]=="CAMBIO":
-      direccionJuego*=-1
-   idJugador+=direccionJuego
-   idJugador=(numeroJugadores+idJugador) if idJugador<0 else idJugador % numeroJugadores
+   if(cartaEscogida==-2):
+      grabarPartida(jugadores,baraja,monton, idJugador)
+   else:
+      if cartaEscogida!=None:
+         cartaEscogida["robar"]+=monton[-1]["robar"]
+         monton.append(cartaEscogida)
+      if len(jugador["mano"])==0:
+         continuar=False
+         print (jugador["nombre"]+ "  GANA LA PARTIDA")
+      if monton[-1]["valor"]=="CAMBIO":
+         direccionJuego*=-1
+      idJugador+=direccionJuego
+      idJugador=(numeroJugadores+idJugador) if idJugador<0 else idJugador % numeroJugadores
    
 
