@@ -99,7 +99,7 @@ def escogerCarta(jugador, cartaEnMesa, baraja):
    while repetir:
       mostrarMano(jugador, True, cartaEnMesa)
       print("\r\nCarta en la mesa: ", pintarCarta(monton[-1]))
-      idCartaEscogida=input("Que carta quieres tirar (R para robar, G Grabar, "+str(len(baraja))+"):").capitalize()
+      idCartaEscogida=input("Que carta quieres tirar (R para robar, G Grabar, C Cargar, S Salir, Cartas en Baraja"+str(len(baraja))+"):").capitalize()
       if idCartaEscogida=="R":
          if len(baraja)>0:
             baraja=robar(jugador,1,baraja)
@@ -107,6 +107,10 @@ def escogerCarta(jugador, cartaEnMesa, baraja):
             print("NO HAY CARTAS PARA ROBAR")
       elif idCartaEscogida=="G":
          return -2,baraja
+      elif idCartaEscogida=="C":
+         return -3,baraja
+      elif idCartaEscogida=="S":
+         return -1,baraja
       elif idCartaEscogida.isnumeric() and int(idCartaEscogida)>0 and int(idCartaEscogida)<=len(jugador["mano"]):
          cartaEscogida=jugador["mano"][int(idCartaEscogida)-1]
          if cumpleLasReglas(cartaEscogida,cartaEnMesa):
@@ -118,6 +122,21 @@ def escogerCarta(jugador, cartaEnMesa, baraja):
             print("ESA CARTA NO VALE")
    return cartaEscogida,baraja
 
+def puntuar(carta):
+   #{"color":"NEGRO", "valor":"+4", "robar":4}
+   if carta["valor"]=="+4":
+      return 100
+   if carta["valor"]=="+2":
+      return 20
+   if carta["valor"]=="COMODIN":
+      return 20
+   if carta["valor"]=="SALTO":
+      return 50
+   if carta["valor"]=="CAMBIO":
+      return 50
+   return int(carta["valor"])
+
+   
 def jugarCarta(jugador, cartaEnMesa, baraja):
    #Pintamos la mano
    repetir=True
@@ -171,16 +190,20 @@ def jugarCarta(jugador, cartaEnMesa, baraja):
    return cartaEscogida,baraja
 
 def grabarPartida(jugadores,baraja,monton,idJugador):
-   f = open("partida.txt", "a")
-   f.write("JUGADORES\n")
-   f.write(str(jugadores))
-   f.write("\nBARAJA\n")
-   f.write(str(baraja))
-   f.write("\nmonton\n")
-   f.write(str(monton))
-   f.write("\njugador actual\n")
-   f.write(str(idJugador))
+   f = open("partida.txt", "w")
+   o={
+      "jugadores":jugadores,
+      "baraja":baraja,
+      "monton":monton,
+      "idJugador": idJugador
+   }
+   f.write(str(o))
    f.close()
+def restaurarPartida():
+   f = open("partida.txt", "r")
+   o=eval(f.read())
+   f.close()
+   return o["jugadores"],o["baraja"],o["monton"],o["idJugador"]
 
 colores=["NEGRO", "AZUL", "VERDE", "ROJA", "AMARILLA"]
 baraja=[] #La baraja de cartas sin cojer
@@ -189,10 +212,10 @@ monton=[] #El montón en la mesa
 baraja=crearBaraja()
 
 jugadores=[
-   {"nombre":"","mano":[], "tipo":"HUMANO"},
-   {"nombre":"robot1","mano":[], "tipo": "IA"},
-   {"nombre":"robot2","mano":[], "tipo": "IA"},
-   {"nombre":"robot3","mano":[], "tipo": "IA"}
+   {"nombre":"","mano":[], "tipo":"HUMANO", "puntuacion":0},
+   {"nombre":"robot1","mano":[], "tipo": "IA", "puntuacion":0},
+   {"nombre":"robot2","mano":[], "tipo": "IA", "puntuacion":0},
+   {"nombre":"robot3","mano":[], "tipo": "IA", "puntuacion":0}
 ]
 jugadores[0]["nombre"]=input("Dime tu nombre:")
 
@@ -228,7 +251,7 @@ while continuar:
       idJugador=(numeroJugadores+idJugador) if idJugador<0 else idJugador % numeroJugadores
    
    jugador=jugadores[idJugador]
-   print("\r\nTurno de " + jugador["nombre"])
+   print("\r\nTurno de " + jugador["nombre"]+" - "+str(jugador["puntuacion"])+ " puntos")
    baraja=controlaRobos(jugador,monton[-1],baraja)
 
    if jugador["tipo"]=="IA":
@@ -238,16 +261,24 @@ while continuar:
       cartaEscogida,baraja=escogerCarta(jugador,monton[-1],baraja)
    if(cartaEscogida==-2):
       grabarPartida(jugadores,baraja,monton, idJugador)
+   elif(cartaEscogida==-3):
+      #Restauramos la partida
+      jugadores,baraja,monton, idJugador=restaurarPartida()
+   elif(cartaEscogida==-1):
+      continuar=False
    else:
       if cartaEscogida!=None:
+         #Añadimos la puntuación
+         jugador["puntuacion"]+=puntuar(cartaEscogida)
          cartaEscogida["robar"]+=monton[-1]["robar"]
          monton.append(cartaEscogida)
-      if len(jugador["mano"])==0:
+      print("Tine puntuación "+str(jugador["puntuacion"]))
+      if len(jugador["mano"])==0 or jugador["puntuacion"]>=300:
          continuar=False
-         print (jugador["nombre"]+ "  GANA LA PARTIDA")
+         print (jugador["nombre"]+ "  GANA LA PARTIDA"+((" Con puntuación de "+str(jugador["puntuacion"])) if (jugador["puntuacion"]>=300) else " SE ha quedado sin cartas"))
       if monton[-1]["valor"]=="CAMBIO":
          direccionJuego*=-1
       idJugador+=direccionJuego
       idJugador=(numeroJugadores+idJugador) if idJugador<0 else idJugador % numeroJugadores
-   
+      
 
